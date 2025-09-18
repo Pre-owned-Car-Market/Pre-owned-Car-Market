@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 const REGIONS = [
-  "서울", "부산", "대구", "인천", "광주", "대전", "울산",
-  "경기", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
+  "서울","부산","대구","인천","광주","대전","울산",
+  "경기","강원","충북","충남","전북","전남","경북","경남","제주",
 ];
 
 export default function SellForm() {
@@ -14,10 +14,10 @@ export default function SellForm() {
   });
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // 숫자만 허용하는 필드 간단 처리
     if (name === "phone" || name === "mileage") {
       const onlyNum = value.replace(/[^\d]/g, "");
       setForm((s) => ({ ...s, [name]: onlyNum }));
@@ -40,20 +40,36 @@ export default function SellForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const msg = validate();
-    if (msg) {
-      setError(msg);
-      return;
-    }
+    if (msg) { setError(msg); return; }
     setError("");
+    setLoading(true);
+    setSubmitted(false);
 
-    // Demo: 실제 서비스에서는 여기서 API 호출
-    // await axios.post('/api/send', form);
-    setSubmitted(true);
+    try {
+      // ✅ Nginx/Vite 프록시 덕분에 같은 오리진으로 호출
+      const resp = await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await resp.json();
+      if (!resp.ok || !data?.ok) {
+        throw new Error(data?.error || "전송에 실패했습니다.");
+      }
+
+      setSubmitted(true);
+      // 성공 시 입력값 초기화(원하면 유지)
+      setForm({ carNumber: "", phone: "", region: "", mileage: "" });
+    } catch (err) {
+      setError(err.message || "전송 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <main style={styles.wrap}>
-      {/* 상단 안내 */}
       <section style={styles.headerCard}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={styles.dot} />
@@ -66,11 +82,6 @@ export default function SellForm() {
       <p style={styles.desc}>
         차량번호·연락처·지역·운행거리만 입력하세요. 전송 즉시 관리자가 알림을 받습니다.
       </p>
-
-      <div style={styles.demoNote}>
-        ⚠️ <b>미리보기(Demo 모드)</b> — 지금은 서버 없이 동작합니다. “전송하기”를 누르면
-        완료 메시지가 표시됩니다. 실서비스에서는 <code>/api/send</code>에 연결해 주세요.
-      </div>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12 }}>
         <label style={styles.label}>
@@ -106,9 +117,7 @@ export default function SellForm() {
           >
             <option value="">지역을 선택하세요</option>
             {REGIONS.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
+              <option key={r} value={r}>{r}</option>
             ))}
           </select>
         </label>
@@ -128,12 +137,12 @@ export default function SellForm() {
         {error && <div style={styles.errorBox}>{error}</div>}
         {submitted && (
           <div style={styles.successBox}>
-            전송이 완료되었습니다! 담당자가 곧 연락드립니다. (Demo)
+            전송이 완료되었습니다! 담당자가 곧 연락드립니다.
           </div>
         )}
 
-        <button type="submit" style={styles.primaryBtn}>
-          전송하기 — 빠른 견적 요청
+        <button type="submit" style={styles.primaryBtn} disabled={loading}>
+          {loading ? "전송 중..." : "전송하기 — 빠른 견적 요청"}
         </button>
 
         <p style={styles.footNote}>
@@ -160,19 +169,9 @@ const styles = {
   green: { color: "#16a34a", fontSize: 12 },
   title: { fontSize: 24, fontWeight: 800, margin: "6px 0 8px" },
   desc: { color: "#475569", fontSize: 14, marginBottom: 12 },
-  demoNote: {
-    background: "#fffbeb",
-    border: "1px solid #fde68a",
-    color: "#78350f",
-    padding: "10px 12px",
-    borderRadius: 10,
-    fontSize: 13,
-    marginBottom: 14,
-  },
   label: { display: "grid", gap: 6, fontSize: 14, color: "#374151" },
   hint: { fontSize: 12, color: "#6b7280", marginLeft: 6 },
   input: {
-    width: "100%",
     border: "1px solid #e5e7eb",
     borderRadius: 10,
     padding: "10px 12px",
@@ -197,13 +196,13 @@ const styles = {
     padding: "10px 12px",
     fontSize: 13,
   },
-  successBox: {
-    background: "#ecfeff",
-    color: "#155e75",
-    border: "1px solid #a5f3fc",
-    borderRadius: 10,
-    padding: "10px 12px",
-    fontSize: 13,
-  },
+successBox: {
+  background: "#ecfeff",
+  color: "#155e75",
+  border: "1px solid #a5f3fc",
+  borderRadius: 10,
+  padding: "10px 12px",
+  fontSize: 13,
+},
   footNote: { color: "#6b7280", fontSize: 12, textAlign: "center", marginTop: 8 },
 };
