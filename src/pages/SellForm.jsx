@@ -37,48 +37,52 @@ export default function SellForm() {
     return "";
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const msg = validate();
-    if (msg) { setError(msg); return; }
-    setError("");
-    setLoading(true);
-    setSubmitted(false);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const msg = validate();
+  if (msg) {
+    setError(msg);
+    alert(msg);   // ❗ 에러 발생 시 alert
+    return;
+  }
+  setError("");
+  setLoading(true);
+  setSubmitted(false);
 
-    try {
-      // ✅ Nginx/Vite 프록시 덕분에 같은 오리진으로 호출
-      const resp = await fetch("/api/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+  try {
+    const resp = await fetch("/car/api/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
 
-      const data = await resp.json();
-      if (!resp.ok || !data?.ok) {
-        throw new Error(data?.error || "전송에 실패했습니다.");
-      }
-
-      setSubmitted(true);
-      // 성공 시 입력값 초기화(원하면 유지)
-      setForm({ carNumber: "", phone: "", region: "", mileage: "" });
-    } catch (err) {
-      setError(err.message || "전송 중 오류가 발생했습니다.");
-    } finally {
-      setLoading(false);
+    const data = await resp.json();
+    if (!resp.ok || !data?.ok) {
+      throw new Error(data?.error || "전송에 실패했습니다.");
     }
-  };
+
+    setSubmitted(true);
+    setForm({ carNumber: "", phone: "", region: "", mileage: "" });
+    alert("전송이 완료되었습니다! 담당자가 곧 연락드립니다."); // ✅ 성공 메시지
+  } catch (err) {
+    setError(err.message || "전송 중 오류가 발생했습니다.");
+    alert(err.message || "전송 중 오류가 발생했습니다.");       // ❗ 실패 메시지
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <main style={styles.wrap}>
       <section style={styles.headerCard}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={styles.dot} />
-          <h2 style={styles.subTitle}>빠른 중고차 판매</h2>
+          <h2 style={styles.subTitle}>수출용 중고차 고가 매입</h2>
         </div>
-        <p style={styles.green}>● 10분 내 응답(근무시간)</p>
       </section>
 
-      <h1 style={styles.title}>중고차 빠른 판매 등록</h1>
+      <h1 style={styles.title}>2020년 이후 기아차 SUV 특가 구매</h1>
       <p style={styles.desc}>
         차량번호·연락처·지역·운행거리만 입력하세요. 전송 즉시 관리자가 알림을 받습니다.
       </p>
@@ -141,9 +145,18 @@ export default function SellForm() {
           </div>
         )}
 
-        <button type="submit" style={styles.primaryBtn} disabled={loading}>
-          {loading ? "전송 중..." : "전송하기 — 빠른 견적 요청"}
-        </button>
+<button
+  type="submit"
+  style={{
+    ...styles.primaryBtn,
+    opacity: validate() || loading ? 0.6 : 1,
+    cursor: validate() || loading ? "not-allowed" : "pointer",
+  }}
+  disabled={!!validate() || loading}
+>
+  {loading ? "전송 중..." : "전송하기 — 빠른 견적 요청"}
+</button>
+
 
         <p style={styles.footNote}>
           입력하신 정보는 판매 알선 목적 외에 사용되지 않습니다.
@@ -154,6 +167,7 @@ export default function SellForm() {
 }
 
 const styles = {
+  
   wrap: {
     maxWidth: 640,
     margin: "32px auto",
@@ -163,6 +177,7 @@ const styles = {
     padding: 20,
     border: "1px solid #eef2f7",
   },
+  
   headerCard: { display: "flex", alignItems: "center", gap: 12, marginBottom: 8 },
   dot: { width: 14, height: 14, borderRadius: 999, background: "#3b82f6", display: "inline-block" },
   subTitle: { fontSize: 16, fontWeight: 600 },
