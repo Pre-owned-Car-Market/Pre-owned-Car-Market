@@ -7,7 +7,7 @@ test('판매 등록 화면이 렌더링된다', () => {
 
   // H1 제목 확인
   expect(
-    screen.getByRole('heading', { level: 1, name: /중고차 빠른 판매 등록/i })
+    screen.getByRole('heading', { level: 1, name: /2020년 이후 기아차 SUV 특가 구매/i })
   ).toBeInTheDocument()
 
   // 전송 버튼 존재 확인
